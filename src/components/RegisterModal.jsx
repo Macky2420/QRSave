@@ -1,63 +1,177 @@
-import { Dialog } from '@headlessui/react'
+import React, { useState } from 'react';
+import { Modal, Input, Button, message } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { auth, db } from '../database/firebaseConfig';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { ref, set } from 'firebase/database';
 
 const RegisterModal = ({ isOpen, onClose }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const navigate = useNavigate();
+
+  const validateForm = () => {
+    let isValid = true;
+
+    // Full name validation
+    if (name.trim().length < 5) {
+      setNameError('Full name must be at least 5 characters');
+      isValid = false;
+    } else {
+      setNameError('');
+    }
+
+    // Email validation
+    if (!email.includes('@')) {
+      setEmailError('Please enter a valid email address');
+      isValid = false;
+    } else {
+      setEmailError('');
+    }
+
+    // Password validation
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      isValid = false;
+    } else {
+      setPasswordError('');
+    }
+
+    return isValid;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setLoading(true);
+
+    try {
+      // Create user in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Send email verification
+      await sendEmailVerification(user);
+
+      // Save user data to Realtime Database
+      await set(ref(db, `accounts/${user.uid}`), {
+        name,
+        email,
+        createdAt: new Date().toISOString(),
+      });
+
+      // Clear form inputs
+      setName('');
+      setEmail('');
+      setPassword('');
+
+      message.success('Registration successful!');
+      onClose();
+      navigate(`/home/${user.uid}`);
+    } catch (error) {
+      message.error(`Registration failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Dialog
+    <Modal
+      title="Create Account"
       open={isOpen}
-      onClose={onClose}
-      className="fixed inset-0 z-10 overflow-y-auto"
+      onCancel={onClose}
+      footer={null}
+      centered
+      className="max-w-md w-full"
     >
-      <Dialog.Overlay className="fixed inset-0 bg-black/30" />
-      
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Dialog.Panel className="relative bg-white rounded-xl p-8 max-w-md w-full">
-          <Dialog.Title className="text-2xl font-bold mb-6">
-            Create QRSave Account
-          </Dialog.Title>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Full Name
+          </label>
+          <Input
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setNameError('');
+            }}
+            onBlur={() => {
+              if (name && name.trim().length < 5) {
+                setNameError('Full name must be at least 5 characters');
+              }
+            }}
+            required
+            size="large"
+            autoComplete="name"
+          />
+          {nameError && <div className="text-red-500 text-sm mt-1">{nameError}</div>}
+        </div>
 
-          <form className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                autoFocus
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="reg-email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                id="reg-email"
-                type="email"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="reg-password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="reg-password"
-                type="password"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
-            >
-              Create Account
-            </button>
-          </form>
-        </Dialog.Panel>
-      </div>
-    </Dialog>
-  )
-}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email
+          </label>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setEmailError('');
+            }}
+            onBlur={() => {
+              if (email && !email.includes('@')) {
+                setEmailError('Please enter a valid email address');
+              }
+            }}
+            required
+            size="large"
+            autoComplete="email"
+          />
+          {emailError && <div className="text-red-500 text-sm mt-1">{emailError}</div>}
+        </div>
 
-export default RegisterModal
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Password (min 6 characters)
+          </label>
+          <Input.Password
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPasswordError('');
+            }}
+            onBlur={() => {
+              if (password && password.length < 6) {
+                setPasswordError('Password must be at least 6 characters');
+              }
+            }}
+            required
+            size="large"
+            autoComplete="new-password"
+            minLength={6}
+          />
+          {passwordError && <div className="text-red-500 text-sm mt-1">{passwordError}</div>}
+        </div>
+
+        <Button
+          type="primary"
+          htmlType="submit"
+          block
+          size="large"
+          className="mt-4 bg-blue-600 hover:bg-blue-700"
+          loading={loading}
+        >
+          Create Account
+        </Button>
+      </form>
+    </Modal>
+  );
+};
+
+export default RegisterModal;
