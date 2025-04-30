@@ -241,126 +241,255 @@ const Home = () => {
       )}
 
       {/* Scan Modal */}
-      <Modal
-        title={<span><CameraOutlined /> Scan QR Code</span>}
-        open={isScanModalVisible}
-        onCancel={() => setIsScanModalVisible(false)}
-        footer={null}
-        centered
-        width={modalWidth}
-        styles={{ body: { padding: 0 } }}
-      >
-        <Tabs
-        activeKey={scanMode}
-        onChange={setScanMode}
-        centered
-        style={{ marginBottom: 24 }}
-        items={[
-          {
-            key: 'camera',
-            label: (<span><CameraOutlined /> Camera</span>),
-            children: (
-              <div style={{ position: 'relative', height: scannerHeight, aspectRatio: '1/1' }}>
-                <Scanner
-                  onScan={handleScan}
-                  onError={handleScanError}
-                  constraints={{ facingMode: 'environment' }}
-                  scanDelay={500}
-                  style={{ borderRadius: 8, width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '60%', height: '60%', border: '4px solid #1890ff', borderRadius: 8, pointerEvents: 'none' }} />
-              </div>
-            )
-          },
-          {
-            key: 'file',
-            label: (<span><UploadOutlined /> File</span>),
-            children: (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: screens.xs ? 24 : 40 }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  style={{ display: 'none' }}
-                  onChange={onSelectFile}
-                />
-                <Button
-                  icon={<UploadOutlined />}
-                  type="primary"
-                  size="large"
-                  onClick={() => fileInputRef.current.click()}
-                  style={{ marginBottom: 16 }}
-                >
-                  Upload Image
-                </Button>
-                <Text type="secondary">Supported formats: PNG, JPG, JPEG</Text>
-              </div>
-            )
-          }
-        ]}
+<Modal
+  title={<span><CameraOutlined /> Scan QR Code</span>}
+  open={isScanModalVisible}
+  onCancel={() => setIsScanModalVisible(false)}
+  footer={null}
+  centered
+  width={screens.xs ? '90vw' : '60vw'}
+  styles={{ 
+    body: { 
+      padding: 0,
+      minHeight: screens.xs ? '50vh' : '60vh'
+    } 
+  }}
+>
+  <Tabs
+    activeKey={scanMode}
+    onChange={setScanMode}
+    centered
+    style={{ marginBottom: 24 }}
+    items={[
+      {
+        key: 'camera',
+        label: (<span><CameraOutlined /> {screens.xs ? 'Cam' : 'Camera'}</span>),
+        children: (
+          <div style={{ 
+            position: 'relative',
+            width: '100%',
+            paddingTop: '100%', // Maintain 1:1 aspect ratio
+            maxHeight: '70vh',
+            margin: '0 auto'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              <Scanner
+                onScan={handleScan}
+                onError={handleScanError}
+                constraints={{ 
+                  facingMode: 'environment',
+                  aspectRatio: 1 // Force square aspect ratio
+                }}
+                scanDelay={500}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: 8
+                }}
+              />
+              <div style={{
+                position: 'absolute',
+                width: '70%',
+                height: '70%',
+                border: '4px solid #1890ff',
+                borderRadius: 8,
+                boxShadow: '0 0 20px rgba(24, 144, 255, 0.3)',
+                pointerEvents: 'none'
+              }} />
+            </div>
+          </div>
+        )
+      },
+      {
+        key: 'file',
+        label: (<span><UploadOutlined /> {screens.xs ? 'File' : 'Upload'}</span>),
+        children: (
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            padding: screens.xs ? 16 : 24,
+            minHeight: '40vh'
+          }}>
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={onSelectFile}
+            />
+            <Button
+              icon={<UploadOutlined />}
+              type="primary"
+              size={screens.xs ? 'middle' : 'large'}
+              onClick={() => fileInputRef.current.click()}
+              style={{ 
+                marginBottom: 16,
+                width: screens.xs ? '100%' : 'auto'
+              }}
+            >
+              {screens.xs ? 'Upload Image' : 'Select QR Code Image'}
+            </Button>
+            <Text type="secondary" style={{ 
+              textAlign: 'center',
+              fontSize: screens.xs ? 12 : 14
+            }}>
+              Supported formats: PNG, JPG, JPEG
+            </Text>
+          </div>
+        )
+      }
+    ]}
+  />
+</Modal>
+
+     {/* Save Modal */}
+<Modal
+  title="Save Scanned Data"
+  open={isSaveModalVisible}
+  onOk={handleSave}
+  cancelText="Cancel"
+  onCancel={() => { setIsSaveModalVisible(false); setScanData(''); setSaveTitle(''); }}
+  okText="Save"
+  centered
+  width={modalWidth}
+  styles={{ body: { padding: screens.xs ? 16 : 24 } }}
+>
+  <Space direction="vertical" size={24} style={{ width: '100%' }}>
+    <div>
+      <Text strong style={{ display: 'block', marginBottom: 8 }}>Title</Text>
+      <Input 
+        placeholder="Enter a descriptive title" 
+        value={saveTitle} 
+        onChange={e => setSaveTitle(e.target.value)} 
+        size="large" 
       />
-      </Modal>
+    </div>
+    <div>
+      <Text strong style={{ display: 'block', marginBottom: 8 }}>Scanned Content</Text>
+      <div style={{ 
+        background: '#f8f9fa', 
+        padding: 16, 
+        borderRadius: 8, 
+        position: 'relative',
+        paddingRight: 40 // Add space for copy button
+      }}>
+        <pre style={{ 
+          whiteSpace: 'pre-wrap', 
+          wordBreak: 'break-all', 
+          margin: 0, 
+          fontFamily: 'monospace', 
+          maxHeight: '40vh', 
+          overflow: 'auto',
+          lineHeight: 1.5
+        }}>
+          {scanData}
+        </pre>
+        <Button 
+          icon={<CopyOutlined />} 
+          type="text" 
+          onClick={() => copyToClipboard(scanData)}
+          style={{ 
+            position: 'absolute', 
+            right: 8, 
+            top: 8,
+            zIndex: 1,
+            background: '#f8f9fa',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}
+        />
+      </div>
+    </div>
+  </Space>
+</Modal>
 
-      {/* Save Modal */}
-      <Modal
-        title="Save Scanned Data"
-        open={isSaveModalVisible}
-        onOk={handleSave}
-        cancelText="Cancel"
-        onCancel={() => { setIsSaveModalVisible(false); setScanData(''); setSaveTitle(''); }}
-        okText="Save"
-        centered
-        width={modalWidth}
-        styles={{ body: { padding: screens.xs ? 16 : 24 } }}
-      >
-        <Space direction="vertical" size={24} style={{ width: '100%' }}>
-          <div>
-            <Text strong style={{ display: 'block', marginBottom: 8 }}>Title</Text>
-            <Input placeholder="Enter a descriptive title" value={saveTitle} onChange={e => setSaveTitle(e.target.value)} size="large" />
-          </div>
-          <div>
-            <Text strong style={{ display: 'block', marginBottom: 8 }}>Scanned Content</Text>
-            <div style={{ background: '#f8f9fa', padding: 16, borderRadius: 8, position: 'relative' }}>
-              <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0, fontFamily: 'monospace', maxHeight: '40vh', overflow: 'auto' }}>{scanData}</pre>
-              <Button icon={<CopyOutlined />} type="text" onClick={() => copyToClipboard(scanData)} style={{ position: 'absolute', right: 8, top: 8 }} />
-            </div>
-          </div>
-        </Space>
-      </Modal>
-
-      {/* View Modal */}
-      <Modal
-        title={currentQr?.title}
-        open={isViewModalVisible}
-        onCancel={() => setIsViewModalVisible(false)}
-        footer={null}
-        centered
-        width={modalWidth}
-        styles={{ body: { padding: screens.xs ? 16 : 24 } }}
-      >
-        {currentQr && (
-          <Space direction="vertical" size={24} style={{ width: '100%' }}>
-            <div style={{ background: '#fff', padding: 24, borderRadius: 8, textAlign: 'center' }}>
-              <QRCode value={currentQr.data} size={screens.xs ? 160 : 200} color="#1890ff" bgColor="#ffffff" style={{ margin: '0 auto' }} />
-            </div>
-            <div style={{ background: '#f8f9fa', padding: 16, borderRadius: 8, position: 'relative' }}>
-              {currentQr.type === 'URL' ? (
-                <a href={currentQr.data} target="_blank" rel="noopener noreferrer" style={{ wordBreak: 'break-all', color: '#1890ff', textDecoration: 'none' }}>
-                  <LinkOutlined style={{ marginRight: 8 }} />{currentQr.data}
-                </a>
-              ) : (
-                <Text style={{ wordBreak: 'break-all', fontFamily: 'monospace' }}>{currentQr.data}</Text>
-              )}
-              <Button icon={<CopyOutlined />} type="text" onClick={() => copyToClipboard(currentQr.data)} style={{ position: 'absolute', right: 8, top: 8 }} />
-            </div>
-            <Space wrap>
-              <Tag icon={<ClockCircleOutlined />} color="default">Created: {new Date(currentQr.createdAt).toLocaleDateString()}</Tag>
-              <Tag color={currentQr.type === 'URL' ? 'blue' : 'purple'}>{currentQr.type}</Tag>
-            </Space>
-          </Space>
+{/* View Modal */}
+<Modal
+  title={currentQr?.title}
+  open={isViewModalVisible}
+  onCancel={() => setIsViewModalVisible(false)}
+  footer={null}
+  centered
+  width={modalWidth}
+  styles={{ body: { padding: screens.xs ? 16 : 24 } }}
+>
+  {currentQr && (
+    <Space direction="vertical" size={24} style={{ width: '100%' }}>
+      <div style={{ background: '#fff', padding: 24, borderRadius: 8, textAlign: 'center' }}>
+        <QRCode 
+          value={currentQr.data} 
+          size={screens.xs ? 160 : 200} 
+          color="#1890ff" 
+          bgColor="#ffffff" 
+          style={{ margin: '0 auto' }} 
+        />
+      </div>
+      <div style={{ 
+        background: '#f8f9fa', 
+        padding: 16, 
+        borderRadius: 8, 
+        position: 'relative',
+        paddingRight: 40 // Add space for copy button
+      }}>
+        {currentQr.type === 'URL' ? (
+          <a 
+            href={currentQr.data} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            style={{ 
+              wordBreak: 'break-all', 
+              color: '#1890ff', 
+              textDecoration: 'none',
+              paddingRight: 8
+            }}
+          >
+            <LinkOutlined style={{ marginRight: 8 }} />
+            {currentQr.data}
+          </a>
+        ) : (
+          <Text style={{ 
+            wordBreak: 'break-all', 
+            fontFamily: 'monospace',
+            paddingRight: 8
+          }}>
+            {currentQr.data}
+          </Text>
         )}
-      </Modal>
-
+        <Button 
+          icon={<CopyOutlined />} 
+          type="text" 
+          onClick={() => copyToClipboard(currentQr.data)}
+          style={{ 
+            position: 'absolute', 
+            right: 8, 
+            top: 8,
+            zIndex: 1,
+            background: '#f8f9fa',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}
+        />
+      </div>
+      <Space wrap>
+        <Tag icon={<ClockCircleOutlined />} color="default">
+          Created: {new Date(currentQr.createdAt).toLocaleDateString()}
+        </Tag>
+        <Tag color={currentQr.type === 'URL' ? 'blue' : 'purple'}>
+          {currentQr.type}
+        </Tag>
+      </Space>
+    </Space>
+  )}
+</Modal>
       {/* Edit Modal */}
       <Modal
         title="Edit Title"
